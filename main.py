@@ -1,10 +1,17 @@
 import tornado.ioloop
 import tornado.web
-import logging
+from settings import settings
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import models
+import datetime
+
 import tornado.auth
 import tornado.gen
 import jwt
-from settings import settings
+
+import logging
 
 log = logging.getLogger(__name__)
 
@@ -41,14 +48,21 @@ class MainHandler(BaseHandler):
         self.render("index.html")
 
 
+class NewUserHandler(BaseHandler):
+    @tornado.web.authenticated
+    def get(self):
+        self.render("new_user.html")
+
+
+class LogoutHandler(BaseHandler):
+    def get(self):
+        self.clear_cookie("user")
+        self.redirect('/login')
+
+
 class LoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
     @tornado.gen.coroutine
     def get(self):
-        # if self.current_user:
-        #     self.redirect("/")
-        #     return
-        # self.render("login.html")
-
         if self.get_argument('code', False):
             user = yield self.get_authenticated_user(redirect_uri=self.settings['redirect_uri'],
                                                      code=self.get_argument('code'))
@@ -56,28 +70,40 @@ class LoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
             # TODO: verify token (https://developers.google.com/identity/protocols/OpenIDConnect#authenticationuriparameters) and
             # (http://stackoverflow.com/questions/17634698/google-oauth-jwt-signature-verification)
 
-            # self.write(data)
+            for user in app.session.query(models.User).filter(models.User.user_id==data['sub']):
+                self.set_secure_cookie("user", data['sub'])
+                self.redirect('/')
+                return
+            app.session.add_all([models.User(user_id=data['sub'], email=data['email'], date_created=datetime.datetime.utcnow())])
             self.set_secure_cookie("user", data['sub'])
-            self.redirect('/')
+            self.redirect('/new')
+
 
         else:
             yield self.authorize_redirect(
                 redirect_uri=self.settings['redirect_uri'],
                 client_id=self.settings['google_oauth']['key'],
-                scope=['email', 'profile'],
+                scope=['email'],
                 response_type='code',
                 extra_params={'approval_prompt': 'auto'})
 
-    # def post(self):
-    #     # IMPORTANT: html page must have the input type="text" and name="name"
-    #     self.set_secure_cookie("user", self.get_argument("name"))
-    #     self.redirect("/")
+
+class FIBApplication(tornado.web.Application):
+    def __init__(self, handlers=None, default_host="", transforms=None, **web_settings):
+        engine = create_engine('sqlite:///:memory:', echo=True)
+        models.init_db(engine)
+        Session = sessionmaker(bind=engine)
+        self.session = Session()
+
+        super().__init__(handlers, default_host, transforms, **web_settings)
 
 
 def make_app():
-    return tornado.web.Application([
+    return FIBApplication([
         (r"/", MainHandler),
         (r"/login", LoginHandler),
+        (r"/new", NewUserHandler),
+        (r"/logout", LogoutHandler)
     ], **settings)
 
 
