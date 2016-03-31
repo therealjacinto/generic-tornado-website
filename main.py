@@ -60,7 +60,12 @@ class LogoutHandler(BaseHandler):
         self.redirect('/login')
 
 
-class LoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
+class LoginHandler(BaseHandler):
+    def get(self):
+        self.render("login.html")
+
+
+class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
     @tornado.gen.coroutine
     def get(self):
         if self.get_argument('code', False):
@@ -103,7 +108,12 @@ def make_app():
         (r"/", MainHandler),
         (r"/login", LoginHandler),
         (r"/new", NewUserHandler),
-        (r"/logout", LogoutHandler)
+        (r"/logout", LogoutHandler),
+        (r"/login/google",GoogleLoginHandler),
+        (r"/css/(.*)", tornado.web.StaticFileHandler, dict(path=settings["css_path"])),
+        (r"/js/(.*)", tornado.web.StaticFileHandler, dict(path=settings["js_path"])),
+        (r"/img/(.*)", tornado.web.StaticFileHandler, dict(path=settings["img_path"])),
+        (r"/fonts/(.*)", tornado.web.StaticFileHandler, dict(path=settings["fonts_path"]))
     ], **settings)
 
 
