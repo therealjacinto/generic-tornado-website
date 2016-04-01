@@ -1,2 +1,2 @@
 # tornado
-Setting up a generic website using tornado as the backend. This is intended to help me learn how to use python/tornado.
+Setting up a generic website using tornado as the backend. For more information, visit https://github.com/therealjacinto/tornado/wiki.
