@@ -17,24 +17,6 @@ log = logging.getLogger(__name__)
 
 
 class BaseHandler(tornado.web.RequestHandler):
-    def write_error(self, status_code, **kwargs):
-        # TODO
-        log.debug("DAYUM, SOMETHING TRIPPED")
-
-    def get_current_user(self):
-        # This is necessary for any calls of self.current_user
-        return self.get_secure_cookie("user")
-
-    def prepare(self):
-        # TODO
-        log.debug("Prepare Yo-Self!")
-
-    def on_connection_close(self):
-        # TODO - called when the client disconnects; applications may choose to detect this case
-        # and halt further processing. Note that there is no guarantee that a closed connection
-        # can be detected promptly.
-        log.debug("User has left the building!")
-
     def get(self):
         if not self.current_user:
             self.redirect("/login")
@@ -46,12 +28,6 @@ class MainHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self):
         self.render("index.html")
-
-
-class NewUserHandler(BaseHandler):
-    @tornado.web.authenticated
-    def get(self):
-        self.render("new_user.html")
 
 
 class LogoutHandler(BaseHandler):
@@ -79,9 +55,8 @@ class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
                 self.set_secure_cookie("user", data['sub'])
                 self.redirect('/')
                 return
-            app.session.add_all([models.User(user_id=data['sub'], email=data['email'], date_created=datetime.datetime.utcnow())])
-            self.set_secure_cookie("user", data['sub'])
-            self.redirect('/new')
+            self.user_id = data['sub']
+            self.render('new_user.html', email_address = data['email'], user_id = data['sub'])
 
 
         else:
@@ -92,8 +67,20 @@ class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
                 response_type='code',
                 extra_params={'approval_prompt': 'auto'})
 
+    def post(self):
+        self.set_header("Content-Type","text/plain")
+        first_name = self.get_body_argument('firstname')
+        username = self.get_body_argument('username')
+        email = self.get_body_argument('email')
+        user_id = self.get_body_argument('user_id')
+        app.session.add_all([models.User(user_id=user_id, email=email, date_created=datetime.datetime.utcnow(), first_name=first_name, username=username)])
+        self.set_secure_cookie("user", user_id)
+        self.redirect("/")
 
-class FIBApplication(tornado.web.Application):
+
+
+
+class App(tornado.web.Application):
     def __init__(self, handlers=None, default_host="", transforms=None, **web_settings):
         engine = create_engine('sqlite:///:memory:', echo=True)
         models.init_db(engine)
@@ -104,10 +91,9 @@ class FIBApplication(tornado.web.Application):
 
 
 def make_app():
-    return FIBApplication([
+    return App([
         (r"/", MainHandler),
         (r"/login", LoginHandler),
-        (r"/new", NewUserHandler),
         (r"/logout", LogoutHandler),
         (r"/login/google",GoogleLoginHandler),
         (r"/css/(.*)", tornado.web.StaticFileHandler, dict(path=settings["css_path"])),
