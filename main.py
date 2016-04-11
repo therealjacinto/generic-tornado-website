@@ -17,6 +17,10 @@ log = logging.getLogger(__name__)
 
 
 class BaseHandler(tornado.web.RequestHandler):
+    def get_current_user(self):
+        # This is necessary for any calls of self.current_user
+        return self.get_secure_cookie("user")
+
     def get(self):
         if not self.current_user:
             self.redirect("/login")
@@ -55,7 +59,6 @@ class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
                 self.set_secure_cookie("user", data['sub'])
                 self.redirect('/')
                 return
-            self.user_id = data['sub']
             self.render('new_user.html', email_address = data['email'], user_id = data['sub'])
 
 
@@ -76,8 +79,6 @@ class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
         app.session.add_all([models.User(user_id=user_id, email=email, date_created=datetime.datetime.utcnow(), first_name=first_name, username=username)])
         self.set_secure_cookie("user", user_id)
         self.redirect("/")
-
-
 
 
 class App(tornado.web.Application):
