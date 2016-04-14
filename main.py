@@ -36,7 +36,23 @@ class MainHandler(BaseHandler):
 
 class LogoutHandler(BaseHandler):
     def get(self):
-        self.clear_cookie("user")
+        def handle_request(response):
+            if response.error:
+                log.warning("Error, failed in logout")
+                log.warning(response.error)
+            else:
+                log.info("User logged out")
+
+        if self.get_secure_cookie("access_token"):
+            access_token = self.get_secure_cookie("access_token")
+            revoke_url = 'https://accounts.google.com/o/oauth2/revoke?token=' + access_token.decode("utf-8")
+            http_client = tornado.httpclient.AsyncHTTPClient()
+            http_client.fetch(revoke_url, handle_request)
+            self.clear_cookie("access_token")
+
+        if self.current_user:
+            self.clear_cookie("user")
+
         self.redirect('/login')
 
 
@@ -54,6 +70,25 @@ class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
             data = jwt.decode(user["id_token"], verify=False, algorithms=['RS256'])
             # TODO: verify token (https://developers.google.com/identity/protocols/OpenIDConnect#authenticationuriparameters) and
             # (http://stackoverflow.com/questions/17634698/google-oauth-jwt-signature-verification)
+
+            access_token = user['access_token']
+            user_id = data['sub']
+
+            def handle_request(response):
+                if response.error:
+                    log.warning("Invalid Token")
+                    log.warning(response.error)
+                else:
+                    log.info("Token exists")
+
+            validation_url = "https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=" + access_token
+
+            http_client = tornado.httpclient.AsyncHTTPClient()
+            validation = http_client.fetch(validation_url, handle_request)
+
+            # validate
+
+            self.set_secure_cookie('access_token', access_token)
 
             for user in app.session.query(models.User).filter(models.User.user_id==data['sub']):
                 self.set_secure_cookie("user", data['sub'])
@@ -80,6 +115,13 @@ class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
         self.set_secure_cookie("user", user_id)
         self.redirect("/")
 
+    def _handle_request_exception(self, e):
+        self.redirect("/login/google/login_timeout")
+
+class LoginTimeoutHandler(BaseHandler):
+    def get(self):
+        self.render("login_timeout.html")
+
 
 class App(tornado.web.Application):
     def __init__(self, handlers=None, default_host="", transforms=None, **web_settings):
@@ -97,14 +139,12 @@ def make_app():
         (r"/login", LoginHandler),
         (r"/logout", LogoutHandler),
         (r"/login/google",GoogleLoginHandler),
-        (r"/css/(.*)", tornado.web.StaticFileHandler, dict(path=settings["css_path"])),
-        (r"/js/(.*)", tornado.web.StaticFileHandler, dict(path=settings["js_path"])),
-        (r"/img/(.*)", tornado.web.StaticFileHandler, dict(path=settings["img_path"])),
-        (r"/fonts/(.*)", tornado.web.StaticFileHandler, dict(path=settings["fonts_path"]))
+        (r"/login/google/login_timeout", LoginTimeoutHandler),
     ], **settings)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     app = make_app()
     app.listen(8888)
     tornado.ioloop.IOLoop.current().start()

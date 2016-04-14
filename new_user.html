@@ -6,6 +6,7 @@
     <body>
         <h1>Enter your information new person!</h1>
         <form method="POST">
+            {% module xsrf_form_html() %}
             First name:<br>
             <input type="text" name="firstname" required><br><br>
             User name:<br>
