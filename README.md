@@ -1,4 +1,6 @@
-This repository aims to provide a generic, login-required website back-end using the [tornado](http://www.tornadoweb.org/en/stable/) framework written in python. This repository provides a working website (with minimal effort to setup) that includes 3 webpages: login, main menu, and a new user page. 
+### Welcome!
+
+This repository aims to provide a generic, login-required website back-end using the [tornado](http://www.tornadoweb.org/en/stable/) framework written in python. This repository provides a working website (with minimal effort to setup) that includes 3 webpages: login, main menu, and a new user page.
 
 There are a few key features I included that every private website requires:
 * A login system: In this repository, login is controlled using Google Oauth2. It is setup so that the user must provide their google credentials and google will send a token to the back-end once their account has been verified. There are two reasons why authentication was done this way. First, to provide an example of how to setup Google Oauth2 in a website, and second, to avoid the need of storing passwords in the database. Which brings us to our next feature...
@@ -7,10 +9,10 @@ There are a few key features I included that every private website requires:
 
 In summary, the aim of this project is to provide a generic, login-required website that provides minimal effort to setup and is geared towards people who are unfamiliar with tornado as a back-end or who want to set something up quickly.
 
-### Note:
+#### Side Note:
 I have made an effort to comment all the python code in this repository. Please go through all the code so that you understand what each line does and why it is necessary. This will help you in modifying this repository to your particular needs.
 
-### What to install
+### What to install:
 
 I developed this repository on Windows, however because of the nature of Python, setup and implementation should be the same across all platforms.
 
@@ -22,7 +24,7 @@ After installing Python, we will need to install the required libraries to run o
 * [cryptography](https://pypi.python.org/pypi/cryptography): used by PyJWT to decrypt RSA signatures (used version 1.3.1 in this project)
 * [SQLAlchemy](https://pypi.python.org/pypi/SQLAlchemy): database toolkit for storing users (used version 1.0.12 in this project)
 
-### Setup
+### Setup:
 
 Once everything is installed, there are a couple things you will need to setup for the code to work properly:
 
@@ -51,8 +53,8 @@ Once everything is installed, there are a couple things you will need to setup f
   ```
 line in `main.py`. Otherwise, it is currently setup to save the database in your local memory and will delete itself when you stop running the server.
 
-### Deployment
+### Deployment:
 Once everything is setup, you can deploy your application. On windows, you can do this by opening your command prompt, navigating to the directory that contains `main.py` using the `cd` command, and executing `python main.py`. Once the server has been activated, navigate to `localhost:8888` using your web browser and you should see the login page.
 
-### Note
+#### Side Note:
 It is important to note that this is an http server, not an https server. It would be a good idea to use https since you are using sensitive google account information. All this requires is for you to add in your SSL certificate option as demonstrated [here](http://stackoverflow.com/a/18307308).
