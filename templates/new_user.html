@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>New User!</title>
+    </head>
+    <body>
+        <h1>Enter your information new person!</h1>
+        <form method="POST"> <!-- POST method caught by googleloginhandler.py -->
+            {% module xsrf_form_html() %} <!-- Used as cross-site request forgery protection.
+                                               See tornado docs for more info -->
+            First name:<br>
+            <input type="text" name="firstname" required><br><br>
+            User name:<br>
+            <input type="text" name="username" required><br><br>
+            <!-- Email address is obtained from Google OAuth2 id token and required to be used as stored email address.
+                 The value can not be changed -->
+            Email address:<br>
+            <input type="text" name="email" value="{{ email_address }}" readonly><br><br>
+            <!-- Google id added as an argument from GET method of handler and transferred to the webpage. This is so
+                 the POST method can obtain the Google id number. -->
+            <input type="hidden" name="user_id" value="{{ user_id }}">
+            <input type="submit" value="Submit">
+        </form>
+    </body>
+</html>
