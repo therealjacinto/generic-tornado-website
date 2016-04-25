@@ -45,7 +45,6 @@ class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
             self.render('new_user.html', email_address=email_address, user_id=user_id)
 
         else:
-            self.log.info("redirecting")
             yield self.authorize_redirect(
                 redirect_uri=self.settings['redirect_uri'],
                 client_id=self.settings['google_oauth']['key'],
